@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Screenshot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 40px; background: #1e1e1e; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Fira Code', monospace; }
+        .window { background: #2d2d2d; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; width: 900px; }
+        .header { background: #3c3c3c; padding: 12px 20px; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+        .title { margin-left: 16px; color: #999; font-size: 14px; font-family: sans-serif; }
+        pre { margin: 0 !important; border-radius: 0 !important; padding: 20px !important; max-height: 800px; overflow: hidden; }
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <div class="title">data_processor.py</div>
+        </div>
+        <pre><code class="language-python">import pandas as pd
+import numpy as np
+import os
+
+class DataProcessor:
+    def __init__(self, csv_path):
+        self.csv_path = csv_path
+        self.df = None
+        self.load_and_process_data()
+
+    def load_and_process_data(self):
+        if not os.path.exists(self.csv_path):
+            raise FileNotFoundError(f&quot;Data file not found at {self.csv_path}&quot;)
+
+        self.df = pd.read_csv(self.csv_path)
+        
+        # Ensure numeric columns are actually numeric
+        numeric_cols = [
+            &#x27;attacking_finishing&#x27;, &#x27;power_shot_power&#x27;, &#x27;mentality_att_positioning&#x27;,
+            &#x27;mentality_vision&#x27;, &#x27;attacking_short_passing&#x27;, &#x27;mentality_composure&#x27;,
+            &#x27;goalkeeping_gk_diving&#x27;, &#x27;goalkeeping_gk_handling&#x27;, &#x27;goalkeeping_gk_reflexes&#x27;,
+            &#x27;overall_rating&#x27;
+        ]
+        for col in numeric_cols:
+            self.df[col] = pd.to_numeric(self.df[col], errors=&#x27;coerce&#x27;).fillna(0)
+
+        # Generate Synthetic Stats
+        np.random.seed(42) # For reproducibility
+
+        # Matches Played (15-38)
+        self.df[&#x27;matches_played&#x27;] = np.random.randint(15, 39, size=len(self.df))
+
+        # Goals: Weighted by Finishing, Shot Power, Positioning
+        # Base goal probability
+        goal_prob = (
+            self.df[&#x27;attacking_finishing&#x27;] * 0.5 + 
+            self.df[&#x27;power_shot_power&#x27;] * 0.3 + 
+            self.df[&#x27;mentality_att_positioning&#x27;] * 0.2
+        ) / 100
+        
+        # Adjust for position (Forwards score more)
+        # Note: &#x27;positions&#x27; column might be a string like &#x27;ST, CF&#x27;. We check if it contains attacking roles.
+        self.df[&#x27;is_attacker&#x27;] = self.df[&#x27;positions&#x27;].str.contains(&#x27;ST|CF|RW|LW|CAM&#x27;, na=False, case=False)
+        goal_prob = np.where(self.df[&#x27;is_attacker&#x27;], goal_prob * 1.5, goal_prob * 0.3)
+        
+        self.df[&#x27;goals&#x27;] = (goal_prob * self.df[&#x27;matches_played&#x27;] * np.random.uniform(0.5, 1.2, size=len(self.df))).astype(int)
+
+        # Assists: Weighted by Vision, Short Passing
+        assist_prob = (
+            self.df[&#x27;mentality_vision&#x27;] * 0.6 + 
+            self.df[&#x27;attacking_short_passing&#x27;] * 0.4
+        ) / 100
+        self.df[&#x27;is_midfielder&#x27;] = self.df[&#x27;positions&#x27;].str.contains(&#x27;CM|CAM|CDM|LM|RM&#x27;, na=False, case=False)
+        assist_prob = np.where(self.df[&#x27;is_midfielder&#x27;], assist_prob * 1.2, assist_prob * 0.4)
+        
+        self.df[&#x27;assists&#x27;] = (assist_prob * self.df[&#x27;matches_played&#x27;] * np.random.uniform(0.3, 0.8, size=len(self.df))).astype(int)
+
+        # G/A Ratio
+        self.df[&#x27;ga_ratio&#x27;] = (self.df[&#x27;goals&#x27;] + self.df[&#x27;assists&#x27;]) / self.df[&#x27;matches_played&#x27;]
+        self.df[&#x27;ga_ratio&#x27;] = self.df[&#x27;ga_ratio&#x27;].round(2)
+
+        # Saves (Only for GKs)
+        self.df[&#x27;is_gk&#x27;] = self.df[&#x27;positions&#x27;].str.contains(&#x27;GK&#x27;, na=False, case=False)
+        save_prob = (
+            self.df[&#x27;goalkeeping_gk_diving&#x27;] + 
+            self.df[&#x27;goalkeeping_gk_handling&#x27;] + 
+            self.df[&#x27;goalkeeping_gk_reflexes&#x27;]
+        ) / 300
+        
+        self.df[&#x27;saves&#x27;] = np.where(
+            self.df[&#x27;is_gk&#x27;], 
+            (save_prob * self.df[&#x27;matches_played&#x27;] * np.random.uniform(2.0, 5.0, size=len(self.df))).astype(int), 
+            0
+        )
+
+        # Clutch Goals: Subset of goals, weighted by Composure
+        clutch_prob = self.df[&#x27;mentality_composure&#x27;] / 100
+        self.df[&#x27;clutch_goals&#x27;] = (self.df[&#x27;goals&#x27;] * clutch_prob * np.random.uniform(0.2, 0.5, size=len(self.df))).astype(int)
+
+    def get_top_scorers(self, limit=10):
+        return self.df.nlargest(limit, &#x27;goals&#x27;)[[&#x27;name&#x27;, &#x27;club_name&#x27;, &#x27;goals&#x27;, &#x27;matches_played&#x27;, &#x27;image&#x27;]].to_dict(orient=&#x27;records&#x27;)
+
+    def get_top_assists(self, limit=10):
+        return self.df.nlargest(limit, &#x27;assists&#x27;)[[&#x27;name&#x27;, &#x27;club_name&#x27;, &#x27;assists&#x27;, &#x27;matches_played&#x27;, &#x27;image&#x27;]].to_dict(orient=&#x27;records&#x27;)
+
+    def get_top_ga_ratio(self, limit=10):
+        # Filter for players with reasonable play time to avoid outliers
+        filtered = self.df[self.df[&#x27;matches_played&#x27;] &gt; 10]
+        return filtered.nlargest(limit, &#x27;ga_ratio&#x27;)[[&#x27;name&#x27;, &#x27;club_name&#x27;, &#x27;ga_ratio&#x27;, &#x27;goals&#x27;, &#x27;assists&#x27;, &#x27;matches_played&#x27;, &#x27;image&#x27;]].to_dict(orient=&#x27;records&#x27;)
+
+    def get_top_saves(self, limit=10):
+        return self.df.nlargest(limit, &#x27;saves&#x27;)[[&#x27;name&#x27;, &#x27;club_name&#x27;, &#x27;saves&#x27;, &#x27;matches_played&#x27;, &#x27;image&#x27;]].to_dict(orient=&#x27;records&#x27;)
+
+    def get_top_clutch(self, limit=10):
+        return self.df.nlargest(limit, &#x27;clutch_goals&#x27;)[[&#x27;name&#x27;, &#x27;club_name&#x27;, &#x27;clutch_goals&#x27;, &#x27;goals&#x27;, &#x27;matches_played&#x27;, &#x27;image&#x27;]].to_dict(orient=&#x27;records&#x27;)
+
+    def get_all_players(self):
+        return self.df[[&#x27;name&#x27;, &#x27;club_name&#x27;, &#x27;overall_rating&#x27;, &#x27;positions&#x27;, &#x27;image&#x27;]].head(50).to_dict(orient=&#x27;records&#x27;)
+</code></pre>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+</body>
+</html>

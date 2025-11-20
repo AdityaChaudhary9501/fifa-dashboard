@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Screenshot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 40px; background: #1e1e1e; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Fira Code', monospace; }
+        .window { background: #2d2d2d; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; width: 900px; }
+        .header { background: #3c3c3c; padding: 12px 20px; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+        .title { margin-left: 16px; color: #999; font-size: 14px; font-family: sans-serif; }
+        pre { margin: 0 !important; border-radius: 0 !important; padding: 20px !important; max-height: 800px; overflow: hidden; }
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <div class="title">Dashboard.jsx</div>
+        </div>
+        <pre><code class="language-jsx">import React, { useEffect, useState } from &#x27;react&#x27;;
+import PlayerTable from &#x27;./PlayerTable&#x27;;
+import { getTopGoals, getTopAssists, getTopGARatio, getTopSaves, getTopClutch } from &#x27;../services/api&#x27;;
+
+const Dashboard = () =&gt; {
+    const [goals, setGoals] = useState([]);
+    const [assists, setAssists] = useState([]);
+    const [gaRatio, setGaRatio] = useState([]);
+    const [saves, setSaves] = useState([]);
+    const [clutch, setClutch] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() =&gt; {
+        const fetchData = async () =&gt; {
+            try {
+                const [goalsData, assistsData, gaData, savesData, clutchData] = await Promise.all([
+                    getTopGoals(),
+                    getTopAssists(),
+                    getTopGARatio(),
+                    getTopSaves(),
+                    getTopClutch(),
+                ]);
+
+                setGoals(goalsData);
+                setAssists(assistsData);
+                setGaRatio(gaData);
+                setSaves(savesData);
+                setClutch(clutchData);
+            } catch (error) {
+                console.error(&quot;Error fetching data:&quot;, error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return (
+            &lt;div className=&quot;min-h-screen bg-gray-900 flex items-center justify-center&quot;&gt;
+                &lt;div className=&quot;animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500&quot;&gt;&lt;/div&gt;
+            &lt;/div&gt;
+        );
+    }
+
+    return (
+        &lt;div className=&quot;min-h-screen bg-gray-900 text-white p-8 font-sans&quot;&gt;
+            &lt;header className=&quot;mb-12 text-center&quot;&gt;
+                &lt;h1 className=&quot;text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 mb-4&quot;&gt;
+                    FIFA 2025 Analytics
+                &lt;/h1&gt;
+                &lt;p className=&quot;text-gray-400 text-lg&quot;&gt;Real-time performance insights and player stats&lt;/p&gt;
+            &lt;/header&gt;
+
+            &lt;div className=&quot;max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8&quot;&gt;
+                &lt;PlayerTable
+                    title=&quot;Top Goal Scorers&quot;
+                    players={goals}
+                    columns={[{ key: &#x27;goals&#x27;, label: &#x27;Goals&#x27; }, { key: &#x27;matches_played&#x27;, label: &#x27;Matches&#x27; }]}
+                /&gt;
+
+                &lt;PlayerTable
+                    title=&quot;Top Assist Providers&quot;
+                    players={assists}
+                    columns={[{ key: &#x27;assists&#x27;, label: &#x27;Assists&#x27; }, { key: &#x27;matches_played&#x27;, label: &#x27;Matches&#x27; }]}
+                /&gt;
+
+                &lt;PlayerTable
+                    title=&quot;Best G/A Ratio&quot;
+                    players={gaRatio}
+                    columns={[
+                        { key: &#x27;ga_ratio&#x27;, label: &#x27;G/A Ratio&#x27; },
+                        { key: &#x27;goals&#x27;, label: &#x27;G&#x27; },
+                        { key: &#x27;assists&#x27;, label: &#x27;A&#x27; }
+                    ]}
+                /&gt;
+
+                &lt;PlayerTable
+                    title=&quot;Top Saves (GK)&quot;
+                    players={saves}
+                    columns={[{ key: &#x27;saves&#x27;, label: &#x27;Saves&#x27; }, { key: &#x27;matches_played&#x27;, label: &#x27;Matches&#x27; }]}
+                /&gt;
+
+                &lt;div className=&quot;lg:col-span-2&quot;&gt;
+                    &lt;PlayerTable
+                        title=&quot;Clutch Players (Crucial Goals)&quot;
+                        players={clutch}
+                        columns={[{ key: &#x27;clutch_goals&#x27;, label: &#x27;Clutch Goals&#x27; }, { key: &#x27;goals&#x27;, label: &#x27;Total Goals&#x27; }]}
+                    /&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;footer className=&quot;mt-16 text-center text-gray-500 text-sm&quot;&gt;
+                &lt;p&gt;Data based on FIFA 2025 Attributes &amp; Synthetic Performance Metrics&lt;/p&gt;
+            &lt;/footer&gt;
+        &lt;/div&gt;
+    );
+};
+
+export default Dashboard;
+</code></pre>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+</body>
+</html>

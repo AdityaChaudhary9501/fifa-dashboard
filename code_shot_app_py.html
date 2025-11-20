@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Screenshot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 40px; background: #1e1e1e; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Fira Code', monospace; }
+        .window { background: #2d2d2d; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; width: 900px; }
+        .header { background: #3c3c3c; padding: 12px 20px; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+        .title { margin-left: 16px; color: #999; font-size: 14px; font-family: sans-serif; }
+        pre { margin: 0 !important; border-radius: 0 !important; padding: 20px !important; max-height: 800px; overflow: hidden; }
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <div class="title">app.py</div>
+        </div>
+        <pre><code class="language-python">from flask import Flask, jsonify
+from flask_cors import CORS
+from data_processor import DataProcessor
+import os
+
+app = Flask(__name__)
+CORS(app) # Allow all origins by default for now
+
+# Initialize Data Processor
+# Assuming data is in ../data/player_stats.csv relative to this file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, &#x27;../data/player_stats.csv&#x27;)
+
+try:
+    processor = DataProcessor(DATA_PATH)
+    print(&quot;Data loaded successfully.&quot;)
+except Exception as e:
+    print(f&quot;Error loading data: {e}&quot;)
+    processor = None
+
+@app.route(&#x27;/api/health&#x27;, methods=[&#x27;GET&#x27;])
+def health_check():
+    return jsonify({&quot;status&quot;: &quot;healthy&quot;, &quot;data_loaded&quot;: processor is not None})
+
+@app.route(&#x27;/api/stats/goals&#x27;, methods=[&#x27;GET&#x27;])
+def get_top_goals():
+    if not processor: return jsonify({&quot;error&quot;: &quot;Data not loaded&quot;}), 500
+    return jsonify(processor.get_top_scorers())
+
+@app.route(&#x27;/api/stats/assists&#x27;, methods=[&#x27;GET&#x27;])
+def get_top_assists():
+    if not processor: return jsonify({&quot;error&quot;: &quot;Data not loaded&quot;}), 500
+    return jsonify(processor.get_top_assists())
+
+@app.route(&#x27;/api/stats/ga_ratio&#x27;, methods=[&#x27;GET&#x27;])
+def get_top_ga_ratio():
+    if not processor: return jsonify({&quot;error&quot;: &quot;Data not loaded&quot;}), 500
+    return jsonify(processor.get_top_ga_ratio())
+
+@app.route(&#x27;/api/stats/saves&#x27;, methods=[&#x27;GET&#x27;])
+def get_top_saves():
+    if not processor: return jsonify({&quot;error&quot;: &quot;Data not loaded&quot;}), 500
+    return jsonify(processor.get_top_saves())
+
+@app.route(&#x27;/api/stats/clutch&#x27;, methods=[&#x27;GET&#x27;])
+def get_top_clutch():
+    if not processor: return jsonify({&quot;error&quot;: &quot;Data not loaded&quot;}), 500
+    return jsonify(processor.get_top_clutch())
+
+if __name__ == &#x27;__main__&#x27;:
+    app.run(debug=True, port=5001, host=&#x27;0.0.0.0&#x27;)
+</code></pre>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+</body>
+</html>
